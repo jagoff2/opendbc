@@ -7,13 +7,13 @@
   .max_torque = (steer), \
   .max_rate_up = (rate_up), \
   .max_rate_down = (rate_down), \
-  .max_rt_delta = 112, \
-  .driver_torque_allowance = 50, \
+  .max_rt_delta = 224, \
+  .driver_torque_allowance = 70, \
   .driver_torque_multiplier = 2, \
   .type = TorqueDriverLimited, \
    /* the EPS faults when the steering angle is above a certain threshold for too long. to prevent this, */ \
    /* we allow setting CF_Lkas_ActToi bit to 0 while maintaining the requested torque value for two consecutive frames */ \
-  .min_valid_request_frames = 89, \
+  .min_valid_request_frames = 85, \
   .max_invalid_request_frames = 2, \
   .min_valid_request_rt_interval = 810000,  /* 810ms; a ~10% buffer on cutting every 90 frames */ \
   .has_steer_req_tolerance = true, \
@@ -21,7 +21,7 @@
 
 extern const LongitudinalLimits HYUNDAI_LONG_LIMITS;
 const LongitudinalLimits HYUNDAI_LONG_LIMITS = {
-  .max_accel = 200,   // 1/100 m/s2
+  .max_accel = 300,   // 1/100 m/s2
   .min_accel = -350,  // 1/100 m/s2
 };
 
