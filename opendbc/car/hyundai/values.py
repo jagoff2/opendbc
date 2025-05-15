@@ -13,12 +13,16 @@ Ecu = CarParams.Ecu
 
 class CarControllerParams:
   ACCEL_MIN = -3.5 # m/s
-  ACCEL_MAX = 2.0 # m/s
+  ACCEL_MAX = 6.0 # m/s
 
   def __init__(self, CP):
     self.STEER_DELTA_UP = 4
     self.STEER_DELTA_DOWN = 7
+<<<<<<< HEAD
     self.STEER_DRIVER_ALLOWANCE = 70
+=======
+    self.STEER_DRIVER_ALLOWANCE =750
+>>>>>>> 7f259fa7b30d91d29a7d20d7e7cdb3c3050b9d44
     self.STEER_DRIVER_MULTIPLIER = 2
     self.STEER_DRIVER_FACTOR = 1
     self.STEER_THRESHOLD = 150
@@ -44,6 +48,7 @@ class CarControllerParams:
       self.STEER_MAX = 404
       self.STEER_DELTA_UP = 4
       self.STEER_DELTA_DOWN = 7
+<<<<<<< HEAD
 
     elif CP.flags & HyundaiFlags.ALT_LIMITS_2:
       self.STEER_MAX = 404
@@ -66,6 +71,12 @@ class HyundaiSafetyFlags(IntFlag):
   CANFD_LKA_STEERING_ALT = 128
   FCEV_GAS = 256
   ALT_LIMITS_2 = 512
+=======
+
+    # Default for most HKG
+    else:
+      self.STEER_MAX = 404
+>>>>>>> 7f259fa7b30d91d29a7d20d7e7cdb3c3050b9d44
 
 
 class HyundaiFlags(IntFlag):
