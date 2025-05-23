@@ -25,7 +25,7 @@ class CarControllerParams:
     self.STEER_STEP = 1  # 100 Hz
 
     if CP.flags & HyundaiFlags.CANFD:
-      self.STEER_MAX = 409
+      self.STEER_MAX = 400
       self.STEER_DRIVER_ALLOWANCE = 250
       self.STEER_DRIVER_MULTIPLIER = 2
       self.STEER_THRESHOLD = 250
@@ -37,22 +37,22 @@ class CarControllerParams:
     elif CP.carFingerprint in (CAR.GENESIS_G80, CAR.HYUNDAI_ELANTRA, CAR.HYUNDAI_ELANTRA_GT_I30, CAR.HYUNDAI_IONIQ,
                                CAR.HYUNDAI_IONIQ_EV_LTD, CAR.HYUNDAI_SANTA_FE_PHEV_2022, CAR.HYUNDAI_SONATA_LF, CAR.KIA_FORTE, CAR.KIA_NIRO_PHEV,
                                CAR.KIA_OPTIMA_H, CAR.KIA_OPTIMA_H_G4_FL, CAR.KIA_SORENTO):
-      self.STEER_MAX = 409
+      self.STEER_MAX = 400
 
     # these cars have significantly more torque than most HKG; limit to 70% of max
     elif CP.flags & HyundaiFlags.ALT_LIMITS:
-      self.STEER_MAX = 409
+      self.STEER_MAX = 400
       self.STEER_DELTA_UP = 3
       self.STEER_DELTA_DOWN = 6
 
     elif CP.flags & HyundaiFlags.ALT_LIMITS_2:
-      self.STEER_MAX = 409
+      self.STEER_MAX = 400
       self.STEER_DELTA_UP = 3
       self.STEER_DELTA_DOWN = 6
 
     # Default for most HKG
     else:
-      self.STEER_MAX = 409    # 3.5 Nm torque (2.91 actual lateral accel)
+      self.STEER_MAX = 400    # 3.5 Nm torque (2.91 actual lateral accel)
 
 
 class HyundaiSafetyFlags(IntFlag):
