@@ -18,8 +18,8 @@ class CarControllerParams:
   ACCEL_MAX = 2.0 # m/s^2
 
   def __init__(self, CP):
-    self.STEER_DELTA_UP = 3
-    self.STEER_DELTA_DOWN = 7
+    self.STEER_DELTA_UP = 4
+    self.STEER_DELTA_DOWN = 8
     self.STEER_DRIVER_ALLOWANCE = 50
     self.STEER_DRIVER_MULTIPLIER = 2
     self.STEER_DRIVER_FACTOR = 1
@@ -54,7 +54,7 @@ class CarControllerParams:
 
     # Default for most HKG
     else:
-      self.STEER_MAX = 384
+      self.STEER_MAX = 404
 
 
 class HyundaiSafetyFlags(IntFlag):
@@ -288,7 +288,7 @@ class CAR(Platforms):
   HYUNDAI_KONA_EV = HyundaiPlatformConfig(
     [HyundaiCarDocs("Hyundai Kona Electric 2018-21", car_parts=CarParts.common([CarHarness.hyundai_g]))],
     CarSpecs(mass=1685, wheelbase=2.6, steerRatio=13.42, tireStiffnessFactor=0.385),
-    flags=HyundaiFlags.EV | HyundaiFlags.ALT_LIMITS,
+    flags=HyundaiFlags.EV,
   )
   HYUNDAI_KONA_EV_2022 = HyundaiPlatformConfig(
     [HyundaiCarDocs("Hyundai Kona Electric 2022-23", car_parts=CarParts.common([CarHarness.hyundai_o]))],

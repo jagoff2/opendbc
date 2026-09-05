@@ -7,7 +7,7 @@
   .max_torque = (steer), \
   .max_rate_up = (rate_up), \
   .max_rate_down = (rate_down), \
-  .max_rt_delta = 112, \
+  .max_rt_delta = 224, \
   .driver_torque_allowance = 50, \
   .driver_torque_multiplier = 2, \
   .type = TorqueDriverLimited, \
@@ -221,7 +221,7 @@ static void hyundai_rx_hook(const CANPacket_t *msg) {
 }
 
 static bool hyundai_tx_hook(const CANPacket_t *msg) {
-  const TorqueSteeringLimits HYUNDAI_STEERING_LIMITS = HYUNDAI_LIMITS(384, 3, 7);
+  const TorqueSteeringLimits HYUNDAI_STEERING_LIMITS = HYUNDAI_LIMITS(410, 9, 9);
   const TorqueSteeringLimits HYUNDAI_STEERING_LIMITS_ALT = HYUNDAI_LIMITS(270, 2, 3);
   const TorqueSteeringLimits HYUNDAI_STEERING_LIMITS_ALT_2 = HYUNDAI_LIMITS(170, 2, 3);
 
