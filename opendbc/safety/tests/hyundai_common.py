@@ -1,5 +1,9 @@
 import unittest
 
+from opendbc.car.hyundai.carcontroller import MAX_ANGLE_FRAMES, MAX_ANGLE_CONSECUTIVE_FRAMES
+from opendbc.car.hyundai.values import CAR, CarControllerParams, HyundaiFlags, HyundaiSafetyFlags
+from opendbc.car.lateral import apply_driver_steer_torque_limits, common_fault_avoidance
+from opendbc.car.structs import CarParams
 from opendbc.sunnypilot.car.hyundai.values import HyundaiSafetyFlagsSP
 import opendbc.safety.tests.common as common
 from opendbc.safety.tests.libsafety import libsafety_py
@@ -15,6 +19,41 @@ class Buttons:
 
 PREV_BUTTON_SAMPLES = 8
 ENABLE_BUTTONS = (Buttons.RESUME, Buttons.SET, Buttons.CANCEL)
+
+
+class HyundaiControllerTorqueSafetyBase:
+  def test_controller_torque_sequence(self):
+    """Controller torque ramps, driver override and request cuts must fit the active safety profile."""
+    canfd = self.safety.get_current_safety_mode() == CarParams.SafetyModel.hyundaiCanfd
+    flags = HyundaiFlags.CANFD if canfd else 0
+    for safety_flag, car_flag in ((HyundaiSafetyFlags.ALT_LIMITS, HyundaiFlags.ALT_LIMITS),
+                                 (HyundaiSafetyFlags.ALT_LIMITS_2, HyundaiFlags.ALT_LIMITS_2)):
+      if not canfd and self.safety.get_current_safety_param() & safety_flag:
+        flags |= car_flag
+    CP = CarParams.new_message(carFingerprint=CAR.KIA_EV6 if canfd else CAR.HYUNDAI_KONA_EV, flags=int(flags))
+    params = CarControllerParams(CP)
+
+    allowance = params.STEER_DRIVER_ALLOWANCE
+    for driver_torque in (0, allowance, -allowance, allowance + 100, -allowance - 100):
+      with self.subTest(driver_torque=driver_torque):
+        self.safety.init_tests()
+        self.safety.set_controls_allowed(True)
+        self.safety.set_torque_driver(driver_torque, driver_torque)
+        last_torque = 0
+        angle_limit_counter = 0
+        frame = 0
+        for target in (1.0, -1.0, 0.0):
+          for _ in range(300):
+            frame += 1
+            self.safety.set_timer(frame * 10000)
+            torque = apply_driver_steer_torque_limits(round(target * params.STEER_MAX), last_torque, driver_torque, params)
+            angle_limit_counter, steer_req = common_fault_avoidance(True, True, angle_limit_counter,
+                                                                   MAX_ANGLE_FRAMES, MAX_ANGLE_CONSECUTIVE_FRAMES)
+            self.assertTrue(self._tx(self._torque_cmd_msg(torque, steer_req)),
+                            f"{frame=} {target=} {torque=} {last_torque=} {steer_req=}")
+            last_torque = torque
+          if driver_torque == 0:
+            self.assertEqual(last_torque, round(target * params.STEER_MAX))
 
 
 class HyundaiButtonBase:

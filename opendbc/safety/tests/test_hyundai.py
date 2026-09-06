@@ -8,7 +8,7 @@ from opendbc.car.structs import CarParams
 from opendbc.safety.tests.libsafety import libsafety_py
 import opendbc.safety.tests.common as common
 from opendbc.safety.tests.common import CANPackerSafety
-from opendbc.safety.tests.hyundai_common import HyundaiButtonBase, HyundaiLongitudinalBase
+from opendbc.safety.tests.hyundai_common import HyundaiButtonBase, HyundaiLongitudinalBase, HyundaiControllerTorqueSafetyBase
 
 from opendbc.sunnypilot.car.hyundai.values import HyundaiSafetyFlagsSP
 
@@ -70,21 +70,23 @@ def checksum(msg):
 
 
 @parameterized_class(LDA_BUTTON)
-class TestHyundaiSafety(HyundaiButtonBase, common.CarSafetyTest, common.DriverTorqueSteeringSafetyTest, common.SteerRequestCutSafetyTest):
+class TestHyundaiSafety(HyundaiButtonBase, HyundaiControllerTorqueSafetyBase, common.CarSafetyTest,
+                       common.DriverTorqueSteeringSafetyTest, common.SteerRequestCutSafetyTest):
   TX_MSGS = [[0x340, 0], [0x4F1, 0], [0x485, 0]]
   STANDSTILL_THRESHOLD = 12  # 0.375 kph
   RELAY_MALFUNCTION_ADDRS = {0: (0x340, 0x485)}  # LKAS11
   FWD_BLACKLISTED_ADDRS = {2: [0x340, 0x485]}
 
-  MAX_RATE_UP = 3
+  MAX_RATE_UP = 4
   MAX_RATE_DOWN = 7
-  MAX_TORQUE_LOOKUP = [0], [384]
-  MAX_RT_DELTA = 112
-  DRIVER_TORQUE_ALLOWANCE = 50
+  MAX_TORQUE_LOOKUP = [0], [404]
+  MAX_RT_DELTA = 400
+  DRIVER_TORQUE_ALLOWANCE = 150
   DRIVER_TORQUE_FACTOR = 2
 
   # Safety around steering req bit
-  MIN_VALID_STEERING_FRAMES = 89
+  MIN_VALID_STEERING_FRAMES = 85
+  MIN_VALID_STEERING_RT_INTERVAL = 810000
   MAX_INVALID_STEERING_FRAMES = 2
 
   cnt_gas = 0
@@ -228,10 +230,6 @@ class TestHyundaiSafety(HyundaiButtonBase, common.CarSafetyTest, common.DriverTo
 
 @parameterized_class(LDA_BUTTON)
 class TestHyundaiSafetyAltLimits(TestHyundaiSafety):
-  MAX_RATE_UP = 2
-  MAX_RATE_DOWN = 3
-  MAX_TORQUE_LOOKUP = [0], [270]
-
   @classmethod
   def setUpClass(cls):
     if cls.__name__ == "TestHyundaiSafetyAltLimits":
@@ -248,10 +246,6 @@ class TestHyundaiSafetyAltLimits(TestHyundaiSafety):
 
 @parameterized_class(LDA_BUTTON)
 class TestHyundaiSafetyAltLimits2(TestHyundaiSafety):
-  MAX_RATE_UP = 2
-  MAX_RATE_DOWN = 3
-  MAX_TORQUE_LOOKUP = [0], [170]
-
   @classmethod
   def setUpClass(cls):
     if cls.__name__ == "TestHyundaiSafetyAltLimits2":

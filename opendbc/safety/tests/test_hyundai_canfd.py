@@ -7,7 +7,7 @@ from opendbc.car.structs import CarParams
 from opendbc.safety.tests.libsafety import libsafety_py
 import opendbc.safety.tests.common as common
 from opendbc.safety.tests.common import CANPackerSafety
-from opendbc.safety.tests.hyundai_common import HyundaiButtonBase, HyundaiLongitudinalBase
+from opendbc.safety.tests.hyundai_common import HyundaiButtonBase, HyundaiLongitudinalBase, HyundaiControllerTorqueSafetyBase
 
 # All combinations of radar/camera-SCC and gas/hybrid/EV cars
 ALL_GAS_EV_HYBRID_COMBOS = [
@@ -22,19 +22,20 @@ ALL_GAS_EV_HYBRID_COMBOS = [
 ]
 
 
-class TestHyundaiCanfdBase(HyundaiButtonBase, common.CarSafetyTest, common.DriverTorqueSteeringSafetyTest, common.SteerRequestCutSafetyTest):
+class TestHyundaiCanfdBase(HyundaiButtonBase, HyundaiControllerTorqueSafetyBase, common.CarSafetyTest,
+                         common.DriverTorqueSteeringSafetyTest, common.SteerRequestCutSafetyTest):
 
   TX_MSGS = [[0x50, 0], [0x1CF, 1], [0x2A4, 0]]
   STANDSTILL_THRESHOLD = 12  # 0.375 kph
   FWD_BLACKLISTED_ADDRS = {2: [0x50, 0x2a4]}
 
-  MAX_RATE_UP = 2
+  MAX_RATE_UP = 3
   MAX_RATE_DOWN = 3
-  MAX_TORQUE_LOOKUP = [0], [270]
+  MAX_TORQUE_LOOKUP = [0], [400]
 
   MAX_RT_DELTA = 112
 
-  DRIVER_TORQUE_ALLOWANCE = 250
+  DRIVER_TORQUE_ALLOWANCE = 350
   DRIVER_TORQUE_FACTOR = 2
 
   # Safety around steering req bit

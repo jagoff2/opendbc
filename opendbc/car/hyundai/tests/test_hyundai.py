@@ -10,7 +10,7 @@ from opendbc.car.hyundai.values import CAR, DATE_FW_ECUS, \
                                          FW_QUERY_CONFIG, CANFD_FUZZY_WHITELIST, \
                                          PLATFORM_CODE_ECUS, HYUNDAI_VERSION_REQUEST_LONG, \
                                          HyundaiFlags, get_platform_codes, HyundaiSafetyFlags, \
-                                         NON_SCC_CAR
+                                         NON_SCC_CAR, CarControllerParams
 from opendbc.car.hyundai.fingerprints import FW_VERSIONS
 from opendbc.testing import fuzzy_test
 
@@ -77,6 +77,22 @@ class TestHyundaiFingerprint(unittest.TestCase):
     for car_model in CAR:
       CP = CarInterface.get_params(car_model, fingerprint, [], False, False, False)
       assert bool(CP.flags & HyundaiFlags.ALT_LIMITS) == bool(CP.safetyConfigs[-1].safetyParam & HyundaiSafetyFlags.ALT_LIMITS)
+
+  def test_controller_steering_profiles(self):
+    # Exercise real platform flags, including former low-torque and alternate-limit platforms.
+    for car_model in CAR:
+      with self.subTest(car_model=car_model):
+        CP = CarInterface.get_params(car_model, gen_empty_fingerprint(), [], False, False, False)
+        params = CarControllerParams(CP)
+        canfd = bool(CP.flags & HyundaiFlags.CANFD)
+        self.assertEqual(params.STEER_MAX, 400)
+        self.assertEqual(params.STEER_DELTA_UP, 3)
+        self.assertEqual(params.STEER_DELTA_DOWN, 3 if canfd else 5)
+        self.assertEqual(params.STEER_DRIVER_ALLOWANCE, 350 if canfd else 70)
+        self.assertEqual(params.STEER_THRESHOLD, 300 if canfd else 200)
+
+    # Preserve the destination's existing Kona EV default-profile selection.
+    self.assertFalse(CAR.HYUNDAI_KONA_EV.config.flags & HyundaiFlags.ALT_LIMITS)
 
   def test_can_features(self):
     for car_model in CAR:

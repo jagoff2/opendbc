@@ -7,7 +7,7 @@ from opendbc.car.vehicle_model import VehicleModel
 FRICTION_THRESHOLD = 0.2
 
 # - ISO 11270
-ISO_LATERAL_ACCEL = 3.0  # m/s^2
+ISO_LATERAL_ACCEL = 5.0  # m/s^2
 ISO_LATERAL_JERK = 5.0  # m/s^3
 
 # - Common angle/curvature safety limits
