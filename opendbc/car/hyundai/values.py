@@ -32,7 +32,11 @@ class CarControllerParams:
       self.STEER_DRIVER_ALLOWANCE = 350
       self.STEER_DRIVER_MULTIPLIER = 2
       self.STEER_THRESHOLD = 300
+      self.STEER_DELTA_UP = 3
       self.STEER_DELTA_DOWN = 3
+    elif CP.carFingerprint == CAR.HYUNDAI_KONA_EV:
+      self.STEER_DELTA_UP = 5
+      self.STEER_DELTA_DOWN = 7
 
 
 class HyundaiSafetyFlags(IntFlag):
@@ -46,6 +50,7 @@ class HyundaiSafetyFlags(IntFlag):
   CANFD_LKA_STEER_MSG_ALT = 128
   FCEV_GAS = 256
   ALT_LIMITS_2 = 512
+  KONA_EV_TORQUE = 1024
 
 
 # Hyundai/Kia/Genesis SCC (Smart Cruise Control) and steering architecture:

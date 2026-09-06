@@ -224,6 +224,7 @@ static bool hyundai_tx_hook(const CANPacket_t *msg) {
   const TorqueSteeringLimits HYUNDAI_STEERING_LIMITS = HYUNDAI_LIMITS(404, 4, 7);
   const TorqueSteeringLimits HYUNDAI_STEERING_LIMITS_ALT = HYUNDAI_LIMITS(404, 4, 7);
   const TorqueSteeringLimits HYUNDAI_STEERING_LIMITS_ALT_2 = HYUNDAI_LIMITS(404, 4, 7);
+  const TorqueSteeringLimits HYUNDAI_STEERING_LIMITS_KONA_EV = HYUNDAI_LIMITS(404, 7, 8);
 
   bool tx = true;
 
@@ -270,7 +271,8 @@ static bool hyundai_tx_hook(const CANPacket_t *msg) {
     int desired_torque = ((GET_BYTES(msg, 0, 4) >> 16) & 0x7ffU) - 1024U;
     bool steer_req = GET_BIT(msg, 27U);
 
-    const TorqueSteeringLimits limits = hyundai_alt_limits_2 ? HYUNDAI_STEERING_LIMITS_ALT_2 :
+    const TorqueSteeringLimits limits = hyundai_kona_ev_torque ? HYUNDAI_STEERING_LIMITS_KONA_EV :
+                                        hyundai_alt_limits_2 ? HYUNDAI_STEERING_LIMITS_ALT_2 :
                                         hyundai_alt_limits ? HYUNDAI_STEERING_LIMITS_ALT : HYUNDAI_STEERING_LIMITS;
 
     if (steer_torque_cmd_checks(desired_torque, steer_req, limits)) {

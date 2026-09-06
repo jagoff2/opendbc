@@ -229,6 +229,34 @@ class TestHyundaiSafety(HyundaiButtonBase, HyundaiControllerTorqueSafetyBase, co
 
 
 @parameterized_class(LDA_BUTTON)
+class TestHyundaiSafetyKonaEV(TestHyundaiSafety):
+  MAX_RATE_UP = 7
+  MAX_RATE_DOWN = 8
+
+  @classmethod
+  def setUpClass(cls):
+    if cls.__name__ == "TestHyundaiSafetyKonaEV":
+      cls.safety = None
+      raise unittest.SkipTest
+
+  def setUp(self):
+    self.packer = CANPackerSafety("hyundai_can_generated")
+    self.safety = libsafety_py.libsafety
+    self.safety.set_current_safety_param_sp(self.SAFETY_PARAM_SP)
+    self.safety.set_safety_hooks(CarParams.SafetyModel.hyundai, HyundaiSafetyFlags.KONA_EV_TORQUE)
+    self.safety.init_tests()
+
+  def test_torque_profile_resets_on_safety_reinit(self):
+    for flags in (HyundaiSafetyFlags.KONA_EV_TORQUE, 0, HyundaiSafetyFlags.ALT_LIMITS, HyundaiSafetyFlags.ALT_LIMITS_2):
+      with self.subTest(flags=flags):
+        self.safety.set_safety_hooks(CarParams.SafetyModel.hyundai, flags)
+        self.safety.init_tests()
+        self.safety.set_controls_allowed(True)
+        self._set_prev_torque(0)
+        self.assertEqual(self._tx(self._torque_cmd_msg(5)), bool(flags & HyundaiSafetyFlags.KONA_EV_TORQUE))
+
+
+@parameterized_class(LDA_BUTTON)
 class TestHyundaiSafetyAltLimits(TestHyundaiSafety):
   @classmethod
   def setUpClass(cls):

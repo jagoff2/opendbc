@@ -30,7 +30,9 @@ class HyundaiControllerTorqueSafetyBase:
                                  (HyundaiSafetyFlags.ALT_LIMITS_2, HyundaiFlags.ALT_LIMITS_2)):
       if not canfd and self.safety.get_current_safety_param() & safety_flag:
         flags |= car_flag
-    CP = CarParams.new_message(carFingerprint=CAR.KIA_EV6 if canfd else CAR.HYUNDAI_KONA_EV, flags=int(flags))
+    kona_ev_torque = bool(self.safety.get_current_safety_param() & HyundaiSafetyFlags.KONA_EV_TORQUE)
+    fingerprint = CAR.KIA_EV6 if canfd else (CAR.HYUNDAI_KONA_EV if kona_ev_torque else CAR.HYUNDAI_SONATA)
+    CP = CarParams.new_message(carFingerprint=fingerprint, flags=int(flags))
     params = CarControllerParams(CP)
 
     allowance = params.STEER_DRIVER_ALLOWANCE

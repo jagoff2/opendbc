@@ -12,6 +12,7 @@ from opendbc.car.hyundai.values import CAR, DATE_FW_ECUS, \
                                          HyundaiFlags, get_platform_codes, HyundaiSafetyFlags, \
                                          NON_SCC_CAR, CarControllerParams
 from opendbc.car.hyundai.fingerprints import FW_VERSIONS
+from opendbc.car.lateral import apply_driver_steer_torque_limits
 from opendbc.testing import fuzzy_test
 
 Ecu = CarParams.Ecu
@@ -85,14 +86,34 @@ class TestHyundaiFingerprint(unittest.TestCase):
         CP = CarInterface.get_params(car_model, gen_empty_fingerprint(), [], False, False, False)
         params = CarControllerParams(CP)
         canfd = bool(CP.flags & HyundaiFlags.CANFD)
+        kona_ev = car_model == CAR.HYUNDAI_KONA_EV
         self.assertEqual(params.STEER_MAX, 400)
-        self.assertEqual(params.STEER_DELTA_UP, 3)
-        self.assertEqual(params.STEER_DELTA_DOWN, 3 if canfd else 5)
+        self.assertEqual(params.STEER_DELTA_UP, 5 if kona_ev else 3)
+        self.assertEqual(params.STEER_DELTA_DOWN, 3 if canfd else (7 if kona_ev else 5))
         self.assertEqual(params.STEER_DRIVER_ALLOWANCE, 350 if canfd else 70)
         self.assertEqual(params.STEER_THRESHOLD, 300 if canfd else 200)
+        self.assertEqual(bool(CP.safetyConfigs[-1].safetyParam & HyundaiSafetyFlags.KONA_EV_TORQUE), kona_ev)
 
     # Preserve the destination's existing Kona EV default-profile selection.
     self.assertFalse(CAR.HYUNDAI_KONA_EV.config.flags & HyundaiFlags.ALT_LIMITS)
+
+  def test_torque_ramp_and_unwind(self):
+    # Match the verified Kona EV response while preserving other classic CAN and CAN FD ramps.
+    for car_model in (CAR.HYUNDAI_KONA_EV, CAR.HYUNDAI_KONA_EV_2022, CAR.HYUNDAI_KONA_2022, CAR.GENESIS_G80, CAR.KIA_EV6):
+      CP = CarInterface.get_params(car_model, gen_empty_fingerprint(), [], False, False, False)
+      params = CarControllerParams(CP)
+      canfd = bool(CP.flags & HyundaiFlags.CANFD)
+      kona_ev = car_model == CAR.HYUNDAI_KONA_EV
+      for sign in (-1, 1):
+        with self.subTest(car_model=car_model, sign=sign):
+          torque = 0
+          for target, expected_frames in ((sign * 400, 80 if kona_ev else 134), (0, 134 if canfd else (58 if kona_ev else 80))):
+            frames = 0
+            while torque != target and frames < 200:
+              torque = apply_driver_steer_torque_limits(target, torque, 0, params)
+              frames += 1
+            self.assertEqual(torque, target)
+            self.assertEqual(frames, expected_frames)
 
   def test_can_features(self):
     for car_model in CAR:

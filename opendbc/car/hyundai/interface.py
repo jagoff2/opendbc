@@ -119,6 +119,9 @@ class CarInterface(CarInterfaceBase):
     ret.steerLimitTimer = 0.4
     CarInterfaceBase.configure_torque_tune(candidate, ret.lateralTuning)
 
+    if candidate == CAR.HYUNDAI_KONA_EV:
+      ret.safetyConfigs[-1].safetyParam |= HyundaiSafetyFlags.KONA_EV_TORQUE.value
+
     if ret.flags & HyundaiFlags.ALT_LIMITS:
       ret.safetyConfigs[-1].safetyParam |= HyundaiSafetyFlags.ALT_LIMITS.value
 
