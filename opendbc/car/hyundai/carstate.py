@@ -26,6 +26,32 @@ BUTTONS_DICT = {Buttons.RES_ACCEL: ButtonType.accelCruise, Buttons.SET_DECEL: Bu
                 Buttons.GAP_DIST: ButtonType.gapAdjustCruise, Buttons.CANCEL: ButtonType.cancel}
 
 
+class SteeringRate:
+  """Recover the direction missing from Hyundai's unsigned steering speed."""
+  def __init__(self):
+    self.previous_angle = None
+
+  def update(self, angles, speeds):
+    rate = 0.0
+    if not angles or len(angles) != len(speeds):
+      self.previous_angle = None
+      return rate
+
+    # vl_all preserves order if several CAN samples arrive in one control cycle.
+    # These are unwrapped steering-wheel angles, not headings modulo 360 degrees.
+    for angle, speed in zip(angles, speeds, strict=True):
+      rate = 0.0
+      if not math.isfinite(angle) or not math.isfinite(speed) or speed < 0.0:
+        self.previous_angle = None
+        continue
+      if self.previous_angle is not None and angle != self.previous_angle:
+        rate = math.copysign(speed, angle - self.previous_angle)
+      # Startup, a fresh sample after a gap, and unchanged quantized angles have
+      # unknown direction. Do not reuse the previous sign across a reversal.
+      self.previous_angle = angle
+    return rate
+
+
 class CarState(CarStateBase, EsccCarStateBase, MadsCarState, CarStateExt):
   def __init__(self, CP, CP_SP):
     CarStateBase.__init__(self, CP, CP_SP)
@@ -37,6 +63,7 @@ class CarState(CarStateBase, EsccCarStateBase, MadsCarState, CarStateExt):
     self.cruise_buttons: deque = deque([Buttons.NONE] * PREV_BUTTON_SAMPLES, maxlen=PREV_BUTTON_SAMPLES)
     self.main_buttons: deque = deque([Buttons.NONE] * PREV_BUTTON_SAMPLES, maxlen=PREV_BUTTON_SAMPLES)
     self.lda_button = 0
+    self.steering_rate = SteeringRate()
 
     self.gear_msg_canfd = "ACCELERATOR" if CP.flags & HyundaiFlags.EV else \
                           "GEAR_ALT" if CP.flags & HyundaiFlags.CANFD_ALT_GEARS else \
@@ -117,7 +144,7 @@ class CarState(CarStateBase, EsccCarStateBase, MadsCarState, CarStateExt):
     ret.vEgoCluster = self.cluster_speed * speed_conv
 
     ret.steeringAngleDeg = cp.vl["SAS11"]["SAS_Angle"]
-    ret.steeringRateDeg = cp.vl["SAS11"]["SAS_Speed"]
+    ret.steeringRateDeg = self.steering_rate.update(cp.vl_all["SAS11"]["SAS_Angle"], cp.vl_all["SAS11"]["SAS_Speed"])
     ret.leftBlinker, ret.rightBlinker = self.update_blinker_from_lamp(
       50, cp.vl["CGW1"]["CF_Gway_TurnSigLh"], cp.vl["CGW1"]["CF_Gway_TurnSigRh"])
     ret.steeringTorque = cp.vl["MDPS12"]["CR_Mdps_StrColTq"]
@@ -249,8 +276,9 @@ class CarState(CarStateBase, EsccCarStateBase, MadsCarState, CarStateExt):
     ret.standstill = cp.vl["WHEEL_SPEEDS"]["WHL_SpdFLVal"] <= STANDSTILL_THRESHOLD and cp.vl["WHEEL_SPEEDS"]["WHL_SpdFRVal"] <= STANDSTILL_THRESHOLD and \
                      cp.vl["WHEEL_SPEEDS"]["WHL_SpdRLVal"] <= STANDSTILL_THRESHOLD and cp.vl["WHEEL_SPEEDS"]["WHL_SpdRRVal"] <= STANDSTILL_THRESHOLD
 
-    ret.steeringRateDeg = cp.vl["STEERING_SENSORS"]["STEERING_RATE"]
     ret.steeringAngleDeg = cp.vl["STEERING_SENSORS"]["STEERING_ANGLE"]
+    ret.steeringRateDeg = self.steering_rate.update(cp.vl_all["STEERING_SENSORS"]["STEERING_ANGLE"],
+                                                 cp.vl_all["STEERING_SENSORS"]["STEERING_RATE"])
     ret.steeringTorque = cp.vl["MDPS"]["MDPS_StrTqSnsrVal"]
     ret.steeringTorqueEps = cp.vl["MDPS"]["MDPS_OutTqVal"]
     ret.steeringPressed = self.update_steering_pressed(abs(ret.steeringTorque) > self.params.STEER_THRESHOLD, 5)
