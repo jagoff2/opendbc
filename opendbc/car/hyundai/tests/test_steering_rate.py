@@ -55,6 +55,39 @@ class TestHyundaiSteeringRate(unittest.TestCase):
         self.assertEqual(rate.update(angles, speeds), 0.)
         self.assertEqual(rate.update([3.], [8.]), 0.)
 
+  def test_duplicate_out_of_order_and_delayed_batches(self):
+    rate = SteeringRate()
+    self.assertEqual(rate.update([5.], [8.], 1_000_000_000), 0.)
+    self.assertEqual(rate.update([6.], [8.], 1_010_000_000), 8.)
+    self.assertEqual(rate.update([7.], [8.], 1_010_000_000), 0.)
+    self.assertEqual(rate.update([5.], [8.], 1_005_000_000), 0.)
+    self.assertEqual(rate.update([8.], [8.], 1_020_000_000), 0.)
+    self.assertEqual(rate.update([9.], [8.], 1_030_000_000), 8.)
+    self.assertEqual(rate.update([5.], [8.], 1_500_000_000), 0.)
+    self.assertEqual(rate.update([4.], [8.], 1_510_000_000), -8.)
+
+  def test_repeated_carstate_update_does_not_reuse_can_sample(self):
+    cp = CarInterface.get_non_essential_params(CAR.HYUNDAI_KONA_EV)
+    cp_sp = CarInterface.get_non_essential_params_sp(cp, CAR.HYUNDAI_KONA_EV)
+    state = CarState(cp, cp_sp)
+    parsers = state.get_can_parsers(cp, cp_sp)
+    pt = parsers[Bus.pt]
+    packer = CANPacker(pt.dbc_name)
+    state.update(parsers)
+    for timestamp, angle in ((1_000_000_000, 10.), (1_010_000_000, 11.)):
+      pt.update([timestamp, [packer.make_can_msg("SAS11", pt.bus, {"SAS_Angle": angle, "SAS_Speed": 8.})]])
+      result, _ = state.update(parsers)
+    self.assertEqual(result.steeringRateDeg, 8.)
+    self.assertEqual(state.update(parsers)[0].steeringRateDeg, 0.)
+
+  def test_sensor_slower_than_control_ticks_retains_fresh_angle_anchor(self):
+    rate = SteeringRate()
+    self.assertEqual(rate.update([5.], [8.], 1_000_000_000), 0.)
+    self.assertEqual(rate.update([], [], 1_000_000_000), 0.)
+    self.assertEqual(rate.update([6.], [8.], 1_020_000_000), 8.)
+    self.assertEqual(rate.update([], [], 1_020_000_000), 0.)
+    self.assertEqual(rate.update([5.], [8.], 1_040_000_000), -8.)
+
 
 if __name__ == "__main__":
   unittest.main()

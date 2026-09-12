@@ -28,11 +28,24 @@ BUTTONS_DICT = {Buttons.RES_ACCEL: ButtonType.accelCruise, Buttons.SET_DECEL: Bu
 
 class SteeringRate:
   """Recover the direction missing from Hyundai's unsigned steering speed."""
+  MAX_SAMPLE_GAP_NS = 100_000_000
+
   def __init__(self):
     self.previous_angle = None
+    self.last_timestamp = 0
 
-  def update(self, angles, speeds):
+  def update(self, angles, speeds, timestamp=None):
     rate = 0.0
+    if timestamp is not None:
+      if timestamp <= self.last_timestamp:
+        # A carState tick without a new SAS packet has no current rate, but
+        # retain its angle anchor for a slower or jittered sensor cadence.
+        if timestamp < self.last_timestamp:
+          self.previous_angle = None
+        return rate
+      if timestamp - self.last_timestamp > self.MAX_SAMPLE_GAP_NS:
+        self.previous_angle = None
+      self.last_timestamp = timestamp
     if not angles or len(angles) != len(speeds):
       self.previous_angle = None
       return rate
@@ -144,7 +157,8 @@ class CarState(CarStateBase, EsccCarStateBase, MadsCarState, CarStateExt):
     ret.vEgoCluster = self.cluster_speed * speed_conv
 
     ret.steeringAngleDeg = cp.vl["SAS11"]["SAS_Angle"]
-    ret.steeringRateDeg = self.steering_rate.update(cp.vl_all["SAS11"]["SAS_Angle"], cp.vl_all["SAS11"]["SAS_Speed"])
+    ret.steeringRateDeg = self.steering_rate.update(cp.vl_all["SAS11"]["SAS_Angle"], cp.vl_all["SAS11"]["SAS_Speed"],
+                                                 cp.ts_nanos["SAS11"]["SAS_Angle"])
     ret.leftBlinker, ret.rightBlinker = self.update_blinker_from_lamp(
       50, cp.vl["CGW1"]["CF_Gway_TurnSigLh"], cp.vl["CGW1"]["CF_Gway_TurnSigRh"])
     ret.steeringTorque = cp.vl["MDPS12"]["CR_Mdps_StrColTq"]
@@ -278,7 +292,8 @@ class CarState(CarStateBase, EsccCarStateBase, MadsCarState, CarStateExt):
 
     ret.steeringAngleDeg = cp.vl["STEERING_SENSORS"]["STEERING_ANGLE"]
     ret.steeringRateDeg = self.steering_rate.update(cp.vl_all["STEERING_SENSORS"]["STEERING_ANGLE"],
-                                                 cp.vl_all["STEERING_SENSORS"]["STEERING_RATE"])
+                                                 cp.vl_all["STEERING_SENSORS"]["STEERING_RATE"],
+                                                 cp.ts_nanos["STEERING_SENSORS"]["STEERING_ANGLE"])
     ret.steeringTorque = cp.vl["MDPS"]["MDPS_StrTqSnsrVal"]
     ret.steeringTorqueEps = cp.vl["MDPS"]["MDPS_OutTqVal"]
     ret.steeringPressed = self.update_steering_pressed(abs(ret.steeringTorque) > self.params.STEER_THRESHOLD, 5)
